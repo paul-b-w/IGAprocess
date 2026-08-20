@@ -151,14 +151,83 @@
 
     .workflow {
       display: grid;
-      gap: 14px;
+      gap: 0;
     }
 
-    .step {
+    .flow-node {
       display: grid;
       grid-template-columns: 82px minmax(0, 1fr);
       gap: 14px;
       align-items: stretch;
+    }
+
+    .parallel-branches {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .branch {
+      display: grid;
+      gap: 12px;
+    }
+
+    .branch-title {
+      text-align: center;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .arrow-down, .arrow-split, .arrow-merge {
+      display: flex;
+      justify-content: center;
+      color: var(--accent);
+      font-weight: 900;
+    }
+
+    .arrow-down {
+      height: 38px;
+      align-items: center;
+      font-size: 1.8rem;
+    }
+
+    .arrow-split, .arrow-merge {
+      position: relative;
+      min-height: 72px;
+      align-items: center;
+      margin: 2px 0;
+    }
+
+    .arrow-split::before, .arrow-merge::before {
+      content: "";
+      position: absolute;
+      left: calc(16.66% + 41px);
+      right: calc(16.66% + 41px);
+      top: 50%;
+      border-top: 2px solid rgba(89, 214, 255, 0.72);
+    }
+
+    .arrow-split::after, .arrow-merge::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 50%;
+      border-left: 2px solid rgba(89, 214, 255, 0.72);
+    }
+
+    .arrow-tip {
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: 100%;
+      text-align: center;
+      font-size: 1.45rem;
+      text-shadow: 0 0 12px rgba(89,214,255,0.65);
     }
 
     .system {
@@ -247,7 +316,9 @@
     @media (max-width: 900px) {
       header, .layout { grid-template-columns: 1fr; }
       .score-card { text-align: left; }
-      .step { grid-template-columns: 1fr; }
+      .flow-node { grid-template-columns: 1fr; }
+      .parallel-branches { grid-template-columns: 1fr; }
+      .arrow-split::before, .arrow-split::after, .arrow-merge::before, .arrow-merge::after { display: none; }
       .system { min-height: 48px; }
     }
   </style>
@@ -277,8 +348,8 @@
       <section class="panel">
         <header>
           <h2>Workflow prédéfini</h2>
-          <p>Déposez les actions dans l'ordre logique d'un Joiner standard.</p>
-          <div class="hint">Astuce : le système RH initie l'arrivée, l'IGA orchestre les identités et accès, puis les systèmes cibles fournissent comptes, adresse mail et moyens physiques.</div>
+          <p>Déposez les actions dans le bon emplacement, en tenant compte des branches parallèles.</p>
+          <div class="hint">Astuce : après la création d'identité dans l'IGA, trois flèches partent en parallèle vers AD, MyCantine et MyBadge. Chaque branche déclenche ensuite les actions liées à l'élément provisionné.</div>
         </header>
         <div id="workflow" class="workflow" aria-label="Workflow Joiner"></div>
         <div class="controls">
@@ -292,16 +363,35 @@
 
   <script>
     const steps = [
-      { system: 'RH', action: 'Validation du profil du nouvel arrivant par les RH' },
-      { system: 'IGA', action: "création de l'identité" },
-      { system: 'AD', action: 'provisioning du compte AD' },
-      { system: 'MyCantine', action: 'provisioning du compte applicatif "MyCantine"' },
-      { system: 'MyBadge', action: 'provisioning du compte applicatif "MyBadge"' },
-      { system: 'O365', action: "création de l'adresse mail" },
-      { system: 'MyBadge', action: 'création du badge' },
-      { system: 'IGA', action: 'notification au manager que le processus a été complété avec succes pour son nouvel arrivant' },
-      { system: 'Accueil', action: 'fourniture du badge' }
+      { id: 'hr-validation', system: 'RH', action: 'Validation du profil du nouvel arrivant par les RH' },
+      { id: 'identity-creation', system: 'IGA', action: "création de l'identité" },
+      { id: 'ad-provisioning', system: 'AD', action: 'provisioning du compte AD' },
+      { id: 'canteen-provisioning', system: 'MyCantine', action: 'provisioning du compte applicatif "MyCantine"' },
+      { id: 'badge-app-provisioning', system: 'MyBadge', action: 'provisioning du compte applicatif "MyBadge"' },
+      { id: 'mail-creation', system: 'O365', action: "création de l'adresse mail" },
+      { id: 'badge-creation', system: 'MyBadge', action: 'création du badge' },
+      { id: 'badge-delivery', system: 'Accueil', action: 'fourniture du badge' },
+      { id: 'manager-notification', system: 'IGA', action: 'notification au manager que le processus a été complété avec succes pour son nouvel arrivant' }
     ];
+
+    const workflowModel = [
+      { type: 'node', step: 'hr-validation' },
+      { type: 'down' },
+      { type: 'node', step: 'identity-creation' },
+      { type: 'split' },
+      {
+        type: 'parallel',
+        branches: [
+          { title: 'Branche AD / O365', steps: ['ad-provisioning', 'mail-creation'] },
+          { title: 'Branche MyCantine', steps: ['canteen-provisioning'] },
+          { title: 'Branche MyBadge', steps: ['badge-app-provisioning', 'badge-creation', 'badge-delivery'] }
+        ]
+      },
+      { type: 'merge' },
+      { type: 'node', step: 'manager-notification' }
+    ];
+
+    const stepById = Object.fromEntries(steps.map((step) => [step.id, step]));
 
     const toolbox = document.getElementById('toolbox');
     const workflow = document.getElementById('workflow');
@@ -332,21 +422,67 @@
         toolbox.appendChild(card);
       });
 
-      steps.forEach((step, index) => {
-        const row = document.createElement('div');
-        row.className = 'step';
-        row.innerHTML = `
-          <div class="system">${index + 1}<br>${step.system}</div>
-          <div class="slot" data-expected="${step.action}">
-            <span class="slot-label">Déposez l'action attendue pour ${step.system}</span>
-            <span class="badge">Vide</span>
-          </div>`;
-        const slot = row.querySelector('.slot');
-        slot.addEventListener('dragover', onDragOver);
-        slot.addEventListener('dragleave', () => slot.classList.remove('over'));
-        slot.addEventListener('drop', onDrop);
-        workflow.appendChild(row);
+      workflowModel.forEach((item) => {
+        if (item.type === 'node') {
+          workflow.appendChild(createNode(stepById[item.step]));
+        }
+
+        if (item.type === 'down') {
+          workflow.appendChild(createArrow('arrow-down', '↓'));
+        }
+
+        if (item.type === 'split') {
+          workflow.appendChild(createArrow('arrow-split', '↙ ↓ ↘'));
+        }
+
+        if (item.type === 'merge') {
+          workflow.appendChild(createArrow('arrow-merge', '↘ ↓ ↙'));
+        }
+
+        if (item.type === 'parallel') {
+          const branches = document.createElement('div');
+          branches.className = 'parallel-branches';
+
+          item.branches.forEach((branch) => {
+            const branchEl = document.createElement('div');
+            branchEl.className = 'branch';
+            branchEl.innerHTML = `<div class="branch-title">${branch.title}</div>`;
+
+            branch.steps.forEach((stepId, index) => {
+              if (index > 0) branchEl.appendChild(createArrow('arrow-down', '↓'));
+              branchEl.appendChild(createNode(stepById[stepId]));
+            });
+
+            branches.appendChild(branchEl);
+          });
+
+          workflow.appendChild(branches);
+        }
       });
+    }
+
+    function createNode(step) {
+      const row = document.createElement('div');
+      row.className = 'flow-node';
+      row.innerHTML = `
+        <div class="system">${step.system}</div>
+        <div class="slot" data-expected="${step.action}">
+          <span class="slot-label">Déposez l'action attendue pour ${step.system}</span>
+          <span class="badge">Vide</span>
+        </div>`;
+      const slot = row.querySelector('.slot');
+      slot.addEventListener('dragover', onDragOver);
+      slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+      slot.addEventListener('drop', onDrop);
+      return row;
+    }
+
+    function createArrow(className, label) {
+      const arrow = document.createElement('div');
+      arrow.className = className;
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.innerHTML = `<span class="arrow-tip">${label.split(' ').map((item) => `<span>${item}</span>`).join('')}</span>`;
+      return arrow;
     }
 
     function onDragStart(event) {
