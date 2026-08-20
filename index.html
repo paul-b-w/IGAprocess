@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cyber Academy - Challenge Joiner IAM</title>
+  <style>
+    :root {
+      --bg: #09111f;
+      --panel: #111c31;
+      --panel-light: #172642;
+      --accent: #59d6ff;
+      --accent-2: #9dff88;
+      --danger: #ff6b7a;
+      --warning: #ffd166;
+      --text: #eef6ff;
+      --muted: #a9b8cc;
+      --slot: #203454;
+      --slot-ok: rgba(157, 255, 136, 0.18);
+      --slot-ko: rgba(255, 107, 122, 0.18);
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(89, 214, 255, 0.22), transparent 34rem),
+        radial-gradient(circle at bottom right, rgba(157, 255, 136, 0.12), transparent 30rem),
+        var(--bg);
+    }
+
+    main {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: 0;
+    }
+
+    .score-card {
+      min-width: 210px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .score-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    #score {
+      margin: 5px 0 0;
+      color: var(--accent-2);
+      font-size: 3rem;
+      font-weight: 800;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: rgba(17, 28, 49, 0.88);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel header {
+      display: block;
+      margin: 0;
+      padding: 18px 20px;
+      background: rgba(255, 255, 255, 0.045);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .panel h2 { margin: 0 0 6px; font-size: 1.25rem; }
+    .panel p { margin: 0; color: var(--muted); line-height: 1.45; }
+
+    .toolbox, .workflow { padding: 18px; }
+
+    .draggable {
+      user-select: none;
+      cursor: grab;
+      margin: 0 0 12px;
+      padding: 14px 14px 14px 46px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #22395f, #172843);
+      color: var(--text);
+      font-weight: 700;
+      line-height: 1.3;
+      position: relative;
+      transition: transform 0.18s ease, opacity 0.18s ease, border-color 0.18s ease;
+    }
+
+    .draggable::before {
+      content: "⋮⋮";
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      letter-spacing: -0.18em;
+      font-size: 1.35rem;
+    }
+
+    .draggable:hover, .draggable:focus { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+    .draggable.dragging { opacity: 0.45; }
+    .draggable.placed { display: none; }
+
+    .workflow {
+      display: grid;
+      gap: 14px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .system {
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(89,214,255,0.22), rgba(89,214,255,0.06));
+      border: 1px solid rgba(89,214,255,0.25);
+      color: var(--accent);
+      font-weight: 900;
+      font-size: 0.82rem;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .slot {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 2px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      background: rgba(32, 52, 84, 0.76);
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .slot.over { border-color: var(--accent); transform: scale(1.01); }
+    .slot.correct { background: var(--slot-ok); border-color: var(--accent-2); }
+    .slot.incorrect { background: var(--slot-ko); border-color: var(--danger); }
+
+    .slot-label { color: var(--muted); font-size: 0.92rem; }
+    .slot-content { font-weight: 800; }
+
+    .badge {
+      white-space: nowrap;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+    }
+
+    .slot.correct .badge { color: #11220e; background: var(--accent-2); }
+    .slot.incorrect .badge { color: #27070c; background: var(--danger); }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+      padding: 0 18px 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      color: #07111f;
+      background: var(--accent);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    button.secondary { background: rgba(255,255,255,0.12); color: var(--text); }
+    button:hover { filter: brightness(1.08); }
+
+    #message {
+      flex: 1 1 100%;
+      min-height: 26px;
+      color: var(--warning);
+      font-weight: 700;
+    }
+
+    .hint {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255, 209, 102, 0.11);
+      color: #ffe4a3;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+      header, .layout { grid-template-columns: 1fr; }
+      .score-card { text-align: left; }
+      .step { grid-template-columns: 1fr; }
+      .system { min-height: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Challenge IAM : Processus Joiner</h1>
+        <p class="subtitle">Reconstituez le workflow d'arrivée d'un nouveau collaborateur. Glissez chaque action dans la bonne étape du processus entre le système RH, l'IGA, l'AD, O365, MyCantine et MyBadge.</p>
+      </div>
+      <section class="score-card" aria-live="polite">
+        <span>Score</span>
+        <strong id="score">0</strong>
+      </section>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <header>
+          <h2>Éléments à positionner</h2>
+          <p>+10 points par bon placement, -10 points par mauvais placement.</p>
+        </header>
+        <div id="toolbox" class="toolbox" aria-label="Actions disponibles"></div>
+      </aside>
+
+      <section class="panel">
+        <header>
+          <h2>Workflow prédéfini</h2>
+          <p>Déposez les actions dans l'ordre logique d'un Joiner standard.</p>
+          <div class="hint">Astuce : le système RH initie l'arrivée, l'IGA orchestre les identités et accès, puis les systèmes cibles fournissent comptes, adresse mail et moyens physiques.</div>
+        </header>
+        <div id="workflow" class="workflow" aria-label="Workflow Joiner"></div>
+        <div class="controls">
+          <button id="reset" type="button">Recommencer</button>
+          <button id="showSolution" class="secondary" type="button">Afficher la solution</button>
+          <div id="message" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const steps = [
+      { system: 'RH', action: 'Validation du profil du nouvel arrivant par les RH' },
+      { system: 'IGA', action: "création de l'identité" },
+      { system: 'AD', action: 'provisioning du compte AD' },
+      { system: 'MyCantine', action: 'provisioning du compte applicatif "MyCantine"' },
+      { system: 'MyBadge', action: 'provisioning du compte applicatif "MyBadge"' },
+      { system: 'O365', action: "création de l'adresse mail" },
+      { system: 'MyBadge', action: 'création du badge' },
+      { system: 'IGA', action: 'notification au manager que le processus a été complété avec succes pour son nouvel arrivant' },
+      { system: 'Accueil', action: 'fourniture du badge' }
+    ];
+
+    const toolbox = document.getElementById('toolbox');
+    const workflow = document.getElementById('workflow');
+    const scoreEl = document.getElementById('score');
+    const messageEl = document.getElementById('message');
+    let score = 0;
+
+    function shuffle(items) {
+      return [...items].sort(() => Math.random() - 0.5);
+    }
+
+    function render() {
+      score = 0;
+      scoreEl.textContent = score;
+      messageEl.textContent = '';
+      toolbox.innerHTML = '';
+      workflow.innerHTML = '';
+
+      shuffle(steps).forEach((step) => {
+        const card = document.createElement('div');
+        card.className = 'draggable';
+        card.draggable = true;
+        card.tabIndex = 0;
+        card.textContent = step.action;
+        card.dataset.action = step.action;
+        card.addEventListener('dragstart', onDragStart);
+        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        toolbox.appendChild(card);
+      });
+
+      steps.forEach((step, index) => {
+        const row = document.createElement('div');
+        row.className = 'step';
+        row.innerHTML = `
+          <div class="system">${index + 1}<br>${step.system}</div>
+          <div class="slot" data-expected="${step.action}">
+            <span class="slot-label">Déposez l'action attendue pour ${step.system}</span>
+            <span class="badge">Vide</span>
+          </div>`;
+        const slot = row.querySelector('.slot');
+        slot.addEventListener('dragover', onDragOver);
+        slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+        slot.addEventListener('drop', onDrop);
+        workflow.appendChild(row);
+      });
+    }
+
+    function onDragStart(event) {
+      event.currentTarget.classList.add('dragging');
+      event.dataTransfer.setData('text/plain', event.currentTarget.dataset.action);
+    }
+
+    function onDragOver(event) {
+      event.preventDefault();
+      if (!event.currentTarget.dataset.locked) {
+        event.currentTarget.classList.add('over');
+      }
+    }
+
+    function onDrop(event) {
+      event.preventDefault();
+      const slot = event.currentTarget;
+      slot.classList.remove('over');
+      if (slot.dataset.locked) return;
+
+      const action = event.dataTransfer.getData('text/plain');
+      const card = [...document.querySelectorAll('.draggable')].find((item) => item.dataset.action === action);
+      const isCorrect = action === slot.dataset.expected;
+
+      score += isCorrect ? 10 : -10;
+      scoreEl.textContent = score;
+
+      slot.classList.add(isCorrect ? 'correct' : 'incorrect');
+      slot.dataset.locked = 'true';
+      slot.innerHTML = `<span class="slot-content">${action}</span><span class="badge">${isCorrect ? '+10' : '-10'}</span>`;
+      if (card) card.classList.add('placed');
+
+      const remaining = document.querySelectorAll('.draggable:not(.placed)').length;
+      messageEl.textContent = isCorrect
+        ? 'Bien joué : cette étape est correctement positionnée.'
+        : `Mauvais emplacement : l'action attendue ici était « ${slot.dataset.expected} ».`;
+
+      if (remaining === 0) {
+        messageEl.textContent = `Partie terminée ! Score final : ${score} point${Math.abs(score) > 1 ? 's' : ''}.`;
+      }
+    }
+
+    document.getElementById('reset').addEventListener('click', render);
+    document.getElementById('showSolution').addEventListener('click', () => {
+      document.querySelectorAll('.slot').forEach((slot) => {
+        if (!slot.dataset.locked) {
+          slot.classList.add('correct');
+          slot.dataset.locked = 'true';
+          slot.innerHTML = `<span class="slot-content">${slot.dataset.expected}</span><span class="badge">Solution</span>`;
+        }
+      });
+      document.querySelectorAll('.draggable').forEach((card) => card.classList.add('placed'));
+      messageEl.textContent = 'Solution affichée. Cliquez sur Recommencer pour rejouer.';
+    });
+
+    render();
+  </script>
+</body>
+</html>
